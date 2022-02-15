@@ -1,0 +1,23 @@
+.map-cell{
+    width: 2rem;
+    height: 2rem !important;
+}
+
+.obstacle{
+    background-color: rgb(150,150,150) !important;
+}
+
+.good-status{
+    font-weight: bold;
+    color: #3A7734;
+}
+
+.neutral-status{
+    font-weight: bold;
+    color: #444444;
+}
+
+.bad-status{
+    font-weight: bold;
+    color: #9C1A1C;
+}
