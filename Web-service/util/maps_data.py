@@ -22,4 +22,4 @@ map_02 = ['XXXXXXXXXXXX',
           'XXXXXXXXXXXX']
 
 
-maps_data = [map_01, map_02]
+maps_data = {1: map_01, 2: map_02}

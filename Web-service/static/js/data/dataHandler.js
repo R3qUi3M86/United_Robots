@@ -7,6 +7,9 @@ export let dataHandler = {
         logResponseStatus(response)
         return response
     },
+    getMapsList: async function (){
+        return await apiGet("/maps");
+    }
     // createNewBoard: async function (payload) {
     //     const response = await apiPost(`/api/boards/new`, payload);
     //     logResponseStatus(response)

@@ -56,5 +56,21 @@ export let domManager = {
         } else {
             console.error("could not find such html element: " + elementIdentifier);
         }
-    }
+    },
+    enableButton(elementIdentifier){
+        const element = document.getElementById(elementIdentifier);
+        if (element) {
+            element.classList.remove('disabled');
+        } else {
+            console.error("could not find such html element: " + elementIdentifier);
+        }
+    },
+    disableButton(elementIdentifier){
+        const element = document.getElementById(elementIdentifier);
+        if (element) {
+            element.classList.add('disabled');
+        } else {
+            console.error("could not find such html element: " + elementIdentifier);
+        }
+    },
 }

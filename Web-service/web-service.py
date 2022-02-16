@@ -2,6 +2,7 @@ from flask import Flask, render_template, url_for, request, redirect, session, j
 from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 from util import utilities
+from util import maps_data
 import database_manager
 import bcrypt
 
@@ -39,6 +40,10 @@ def get_robot_status():
 
     return jsonify({'response_status': 'ok', 'robot_status': robot_status})
 
+
+@app.route("/maps")
+def get_maps():
+    return jsonify(list(maps_data.maps_data.keys()))
 
 # @socket.on("connect", namespace='/status-update')
 # def connect_robot():

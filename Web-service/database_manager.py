@@ -3,8 +3,8 @@ from psycopg2.extras import RealDictCursor, RealDictRow
 from util import maps_data
 
 
-robotsDirectStatus = {1: {'activity': 'cleaning', 'position': (1, 1), 'map': maps_data.map_01}}
-robotsRoutedStatus = {1: {'activity': 'cleaning', 'position': (1, 1), 'map': maps_data.map_01}}
+robotsDirectStatus = {1: {'activity': 'cleaning', 'position': (1, 1), 'map': maps_data.maps_data[1]}}
+robotsRoutedStatus = {1: {'activity': 'cleaning', 'position': (1, 1), 'map': maps_data.maps_data[1]}}
 
 
 def get_robot_status(robot_id):
