@@ -65,9 +65,9 @@ def get_map(cursor: RealDictCursor, map_id) -> list:
 
 
 @database_common.connection_handler
-def add_map_to_db(cursor: RealDictCursor, map_data):
+def add_map_to_db(cursor: RealDictCursor, map_data, map_id):
     query = """
-        INSERT INTO maps (map_data)
-        VALUES (%(map_data)s)
+        INSERT INTO maps (id, map_data)
+        VALUES (%(map_id)s, %(map_data)s)
     """
-    cursor.execute(query, {'map_data': map_data})
+    cursor.execute(query, {'map_id': map_id, 'map_data': map_data})

@@ -34,7 +34,8 @@ def command_robot():
         robot_emulator = threading.Thread(target=robot.take_command, args=(request.json,))
         robot_emulator.start()
         if request.json['command'] == UPLOAD:
-            return jsonify({'status': 'ok', 'map_data': robot.maps[request.json['map_id']]})
+            return jsonify({'status': 'ok', 'map_data': str(robot.maps[request.json['map_id']]),
+                            'internet_conn': robot.internet_connection})
         return jsonify({'status': 'ok'})
     return jsonify({'status': 'access denied'})
 

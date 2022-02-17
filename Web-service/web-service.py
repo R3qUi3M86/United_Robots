@@ -50,6 +50,7 @@ def get_maps():
 
 @socket.on("disconnect", namespace='/update')
 def disconnect_entity():
+    print(database_manager.robotsDirectStatus)
     robot_id = None
     for key in database_manager.robotsDirectStatus:
         if request.sid == database_manager.robotsDirectStatus[key]['conn_sid']:
@@ -80,6 +81,11 @@ def receive_robot_status_update(data):
                                                                  'timestamp': time()}
 
         user_conn_sockets[session['uid']] = request.sid
+
+
+@socket.on("map_upload", namespace='/update')
+def download_robot_map(data):
+    database_manager.add_map_to_db()
 
 
 def main():

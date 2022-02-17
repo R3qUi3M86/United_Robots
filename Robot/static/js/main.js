@@ -2,13 +2,22 @@ let namespace = '/update'
 let operator_socket = io.connect(document.domain + ':' + 5050 + namespace);
 let web_socket = io.connect(document.domain + ':' + 5000 + namespace);
 let display_update_interval = setInterval(updateRobot, 300)
+let webWifi = true
+let opWifi = true
 
 async function updateRobot(){
     let response = await apiGet("/get_update");
     updateDisplay(response)
-    web_socket.emit('update_status', response)
-    operator_socket.emit('update_status', response)
-
+    if (webWifi){
+        web_socket.emit('update_status', response)
+    } else {
+        apiPost("/connection", {'internet_conn': false})
+    }
+    if (opWifi){
+        operator_socket.emit('update_status', response)
+    } else {
+        apiPost("/connection", {'operator_conn': false})
+    }
 }
 
 web_socket.on('receive_conn', function (data){
@@ -29,7 +38,23 @@ operator_socket.on('connect_error', function (err){
 
 operator_socket.on('receive_command', function (data) {
     console.log(data)
+    issueCommand(data)
 })
+
+async function issueCommand(data){
+    const response = await apiPost("/command_robot", data);
+    if (response['status'] === 'ok') {
+        if (response['map_data']) {
+            if (webWifi && response['internet_conn']) {
+                web_socket.emit('map_upload', {'map_id': data['map_id'], 'map_data': response['map_data']})
+            } else {
+                console.error('Map upload failed - no internet connection!')
+            }
+        }
+    } else {
+        console.warn('Unauthorized user tried to issue command - refused!')
+    }
+}
 
 function updateDisplay(data){
     const internetStatusElement = document.getElementById("internet-conn-status");
@@ -129,5 +154,42 @@ async function apiPost(url, payload) {
     });
     if (response.status === 200) {
         return response.json();
+    }
+}
+
+document.getElementById('web-wifi').addEventListener('click', webWifiToggleHandler)
+document.getElementById('operator-wifi').addEventListener('click', opWifiToggleHandler)
+
+function webWifiToggleHandler(evt){
+    const targetBtn = evt.currentTarget
+    if (targetBtn.classList.contains('btn-success')){
+        targetBtn.classList.remove('btn-success')
+        targetBtn.classList.add('btn-danger')
+        targetBtn.innerText = "Web WiFi OFF"
+        webWifi = false
+        web_socket.disconnect()
+    } else {
+        targetBtn.classList.remove('btn-danger')
+        targetBtn.classList.add('btn-success')
+        targetBtn.innerText = "Web WiFi ON"
+        webWifi = true
+        web_socket.connect()
+    }
+}
+
+function opWifiToggleHandler(evt){
+    const targetBtn = evt.currentTarget
+    if (targetBtn.classList.contains('btn-success')){
+        targetBtn.classList.remove('btn-success')
+        targetBtn.classList.add('btn-danger')
+        targetBtn.innerText = "Op WiFi OFF"
+        opWifi = false
+        opWifi.disconnect()
+    } else {
+        targetBtn.classList.remove('btn-danger')
+        targetBtn.classList.add('btn-success')
+        targetBtn.innerText = "Op WiFi ON"
+        opWifi = true
+        opWifi.connect()
     }
 }
