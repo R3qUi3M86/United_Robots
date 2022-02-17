@@ -45,46 +45,52 @@ export let contentManager = {
     },
     getRobotWebStatusReport: async function (robotId){
         const response = await dataHandler.getRobotStatus({'id': robotId});
-        const map = response['robot_status']['robot_data']['map'];
-        const robotPos = response['robot_status']['robot_data']['position'];
+        const map = response['robot_status']['used_map'];
+        const robotPos = response['robot_status']['position'];
         contentManager.paintMap(robotId, map);
         contentManager.addRobotToMap(robotId, robotPos);
         contentManager.setRobotStatus(response['robot_status'], robotId);
     },
     setRobotStatus: function (robotStatus, robotId) {
         const robotStatusBuilder = htmlFactory(htmlTemplates.robotStatus);
-        const internetConn = robotStatus['conn_status']['internet connection'];
-        const operatorConn = robotStatus['conn_status']['operator connection'];
-        const activityStatus = robotStatus['robot_data']['activity'];
-        const positionStatus = robotStatus['robot_data']['position'];
+        const internetConn = robotStatus['internet_conn'];
+        const operatorConn = robotStatus['operator_conn'];
+        const activityStatus = robotStatus['activity'];
+        const positionStatus = robotStatus['position'];
+        let internetStatus
+        let operatorStatus
         let internetConnStatusType;
         let operatorConnStatusType;
 
-        if (internetConn === 'UP'){
+        console.log(internetConn)
+        if (internetConn){
             domManager.enableButton(`robot-${robotId}-upload-btn`)
         } else {
             domManager.disableButton(`robot-${robotId}-upload-btn`)
         }
 
-        if (robotStatus['conn_status']['internet connection'] === 'UP'){
+        if (internetConn){
+            internetStatus = "UP"
             internetConnStatusType = statusTypes.good;
         } else {
+            internetStatus = "DOWN"
             internetConnStatusType = statusTypes.bad;
         }
 
-        if (robotStatus['conn_status']['operator connection'] === 'UP'){
+        if (operatorConn){
+            operatorStatus = "UP"
             operatorConnStatusType = statusTypes.good;
         } else {
+            operatorStatus = "DOWN"
             operatorConnStatusType = statusTypes.bad;
         }
 
-        const robotInternetConn = robotStatusBuilder(internetConnStatusType, internetConn);
-        const robotOperatorConn = robotStatusBuilder(operatorConnStatusType, operatorConn);
+        const robotInternetConn = robotStatusBuilder(internetConnStatusType, internetStatus);
+        const robotOperatorConn = robotStatusBuilder(operatorConnStatusType, operatorStatus);
         const robotActivity = robotStatusBuilder(statusTypes.neutral, activityStatus);
         const robotPosition = robotStatusBuilder(statusTypes.neutral, positionStatus);
 
         const statusElementList = [robotInternetConn, robotOperatorConn, robotActivity, robotPosition];
-
         let i = 0
         for (let childElement of document.getElementById(`robot-${robotId}-status-wrapper`).children){
             domManager.removeCurrentStatus(childElement.id);

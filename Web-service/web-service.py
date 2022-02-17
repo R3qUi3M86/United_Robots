@@ -3,12 +3,13 @@ from flask_socketio import SocketIO, emit
 from dotenv import load_dotenv
 from util import utilities
 from util import maps_data
+from time import time
 import database_manager
 import bcrypt
 
 app = Flask(__name__)
 app.secret_key = "super duper hyper turbo and very salty secret key!"
-socket = SocketIO(app)
+socket = SocketIO(app, cors_allowed_origins='*')
 load_dotenv()
 
 user_conn_sockets = {}
@@ -35,9 +36,7 @@ def get_robots():
 @app.route("/robot-status", methods=["POST"])
 def get_robot_status():
     robot_id = request.json['id']
-
     robot_status = database_manager.get_robot_status(int(robot_id))
-
     return jsonify({'response_status': 'ok', 'robot_status': robot_status})
 
 
@@ -49,27 +48,42 @@ def get_maps():
 # def connect_robot():
 
 
-@socket.on("disconnect", namespace='/status-update')
-def disconnect_user():
-    pass
+@socket.on("disconnect", namespace='/update')
+def disconnect_entity():
+    robot_id = None
+    for key in database_manager.robotsDirectStatus:
+        if request.sid == database_manager.robotsDirectStatus[key]['conn_sid']:
+            robot_id = key
+            break
+    del database_manager.robotsDirectStatus[robot_id]
 
 
-@socket.on("update_stream", namespace='/status-update')
+@socket.on("update_status", namespace='/update')
 def receive_robot_status_update(data):
     if data['entity'] == 'robot':
-        database_manager.robotsDirectStatus[data['robot_id']] = {'activity': data['activity'],
+        database_manager.robotsDirectStatus[data['robot_id']] = {'internet_conn': data['internet_conn'],
+                                                                 'operator_conn': data['operator_conn'],
+                                                                 'activity': data['activity'],
                                                                  'position': data['position'],
-                                                                 'conn_sid': request.sid}
+                                                                 'used_map_id': data['used_map'],
+                                                                 'conn_sid': request.sid,
+                                                                 'timestamp': time()}
+        emit('receive_conn', {'internet_conn': True})
+
     elif data['entity'] == 'operator':
-        database_manager.robotsRoutedStatus[data['robot_id']] = {'activity': data['activity'],
+        database_manager.robotsRoutedStatus[data['robot_id']] = {'internet_conn': data['internet_conn'],
+                                                                 'operator_conn': data['operator_conn'],
+                                                                 'activity': data['activity'],
                                                                  'position': data['position'],
-                                                                 'conn_sid': data['operator_conn_sid']}
+                                                                 'used_map_id': data['used_map'],
+                                                                 'conn_sid': request.sid,
+                                                                 'timestamp': time()}
 
         user_conn_sockets[session['uid']] = request.sid
 
 
 def main():
-    app.run(debug=True)
+    app.run(debug=True, port=5000)
 
     # Serving the favicon
     with app.app_context():

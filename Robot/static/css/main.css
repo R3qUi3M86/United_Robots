@@ -1,0 +1,22 @@
+.good-status{
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #3A7734;
+}
+
+.neutral-status{
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #444444;
+}
+
+.bad-status{
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #9C1A1C;
+}
+
+.log-card{
+    width: 25rem;
+    height: 20rem;
+}
