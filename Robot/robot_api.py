@@ -1,19 +1,20 @@
 from flask import Flask, render_template, url_for, request, redirect, session, jsonify
+from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from robots import Cleaner, Terminator, Annihilator, UPLOAD
 import threading
 
 
 app = Flask(__name__)
+CORS(app)
 app.secret_key = "super duper hyper turbo and very salty secret key!"
 
 self_socket = None
 operator_socket = None
 web_socket = None
 
+# Use this to instantiate robot emulator
 ROBOT_ID = 1
-PORT = None
-
 robot = Cleaner(ROBOT_ID)
 
 
@@ -53,7 +54,15 @@ def set_connection_status():
 def get_map_from_robot():
     authorized = True  # Auth placeholder
     if authorized:
-        return jsonify()
+        return jsonify(robot.used_map)
+    return jsonify({'status': 'access denied'})
+
+
+@app.route('/maps')
+def get_all_map_ids_from_robot():
+    authorized = True  # Auth placeholder
+    if authorized:
+        return jsonify(list(robot.maps.keys()))
     return jsonify({'status': 'access denied'})
 
 
@@ -64,26 +73,22 @@ def get_status_data():
         robot.log_report = None
 
     status_data = {'robot_id': robot.robot_id,
+                   'robot_sn': robot.serial_no,
+                   'robot_name': robot.name,
                    'internet_conn': robot.internet_connection,
                    'operator_conn': robot.operator_connection,
                    'activity': robot.activity,
                    'position': robot.position,
                    'loaded_maps': list(robot.maps.keys()),
-                   'used_map': robot.used_map,
+                   'used_map_id': robot.used_map_id,
                    'log_report': log_report,
                    'entity': 'robot'}
 
     return status_data
 
 
-def set_app_port(robot_id):
-    global PORT
-    PORT = 5000+robot_id
-
-
 def main():
-    set_app_port(ROBOT_ID)
-    app.run(debug=True, port=PORT)
+    app.run(debug=True, port=(5000+ROBOT_ID))
     # Serving the favicon
     with app.app_context():
         app.add_url_rule('/favicon.ico', redirect_to=url_for('static', filename='favicon/favicon.ico'))

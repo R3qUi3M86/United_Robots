@@ -49,10 +49,15 @@ export let domManager = {
             console.error("could not find such html element: " + elementIdentifier);
         }
     },
-    addRobotToMap(elementIdentifier, robotPos){
+    updateRobotOnMap(elementIdentifier, robotPos, robotLastPos){
         const element = document.getElementById(elementIdentifier);
         if (element) {
-            element.children[robotPos[0]].children[robotPos[1]].innerText = 'R'
+            if (robotPos !== robotLastPos){
+                if (robotLastPos){
+                    element.children[robotLastPos[0]].children[robotLastPos[1]].innerText = ''
+                }
+                element.children[robotPos[0]].children[robotPos[1]].innerText = 'R'
+            }
         } else {
             console.error("could not find such html element: " + elementIdentifier);
         }

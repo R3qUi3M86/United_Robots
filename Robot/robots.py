@@ -27,8 +27,8 @@ STARTING_UP = 'powering up'
 SHUTTING_DOWN = 'shutting down'
 IDLE = 'idle'
 MOVING = 'moving'
-DOWNLOADING_DATA = 'downloading map data from web service'
-UPLOADING_DATA = 'uploading map data to web service'
+DOWNLOADING_DATA = 'downloading map from web'
+UPLOADING_DATA = 'uploading map to web'
 
 DOING_STUFF = "Doing robot stuff..."
 CLEANING = 'cleaning'
@@ -43,6 +43,7 @@ LOG_MOVE_L = "moving west"
 TRAVELING = "Traveling to designated location..."
 ARRIVED = "Arrived at destination!"
 STOPPED = "Stopped due to lost connection"
+MAP_USE = "Setting used map to "
 
 PWR_1a = "Initializing primary power circuits..."
 PWR_2a = "Starting secondary modules..."
@@ -73,7 +74,7 @@ class Robot:
         self.serial_no = robot_sn[robot_id]
         self.activity = POWERED_DOWN
         self.position = [1, 1]
-        self.used_map = None
+        self.used_map_id = None
         self.doing_stuff = DOING_STUFF
         self.log_report = None
         self.operator_connection = False
@@ -87,24 +88,24 @@ class Robot:
 
     # Taking commands
     def take_command(self, command_data):
-        if command_data['command_type'] == POWER_ON:
+        if command_data['command'] == POWER_ON:
             self.start_robot()
-        elif command_data['command_type'] == POWER_OFF:
+        elif command_data['command'] == POWER_OFF:
             self.shutdown_robot()
-        elif command_data['command_type'] == DOWNLOAD:
-            self.download_map_data(command_data['map_id'], command_data['map_data'])
-        elif command_data['command_type'] == UPLOAD:
+        elif command_data['command'] == DOWNLOAD:
+            self.download_map_data(command_data['map_id'], command_data['map'])
+        elif command_data['command'] == UPLOAD:
             self.upload_map_data(command_data['map_id'])
-        elif command_data['command_type'] == SET_MAP:
+        elif command_data['command'] == SET_MAP:
             self.set_used_map(command_data['map_id'])
-        elif command_data['command_type'] == DO:
+        elif command_data['command'] == DO:
             self.do_robot_stuff()
-        elif command_data['command_type'] == MOVE:
+        elif command_data['command'] == MOVE:
             if command_data['move_dir'] == MOVE_GRID:
                 self.travel_to_grid_loc(command_data['grid'])
             else:
                 self.move_robot(command_data['move_dir'])
-        elif command_data['command_type'] == SELF_DESTRUCT:
+        elif command_data['command'] == SELF_DESTRUCT:
             self.destroy_robot()
 
     # Connection status setting
@@ -179,17 +180,25 @@ class Robot:
 
     def download_map_data(self, map_id, map_data):
         self.activity = DOWNLOADING_DATA + f" [Map ID: {map_id}]"
+        self.log_report = self.activity
         time.sleep(2)
         self.maps[map_id] = map_data
-        self.activity = IDLE
+        if self.has_started:
+            self.activity = IDLE
+        else:
+            self.activity = POWERED_DOWN
 
     def upload_map_data(self, map_id):
         self.activity = UPLOADING_DATA + f" [Map ID: {map_id}]"
         time.sleep(2)
-        self.activity = IDLE
+        if self.has_started:
+            self.activity = IDLE
+        else:
+            self.activity = POWERED_DOWN
 
     def set_used_map(self, map_id):
-        self.used_map = self.maps[map_id]
+        self.used_map_id = self.maps[map_id]
+        self.log_report = MAP_USE
 
     def destroy_robot(self):
         self.activity = POWERED_DOWN

@@ -3,6 +3,8 @@ import {dataHandler} from "../data/dataHandler.js";
 import {domManager} from "../view/domManager.js";
 
 let robotReportIntervals = {}
+let map_cache = {}
+let robotLastPos
 
 export let contentManager = {
     loadRobots: async function () {
@@ -44,10 +46,12 @@ export let contentManager = {
     },
     getRobotWebStatusReport: async function (robotId){
         const response = await dataHandler.getRobotStatus({'robot_id': robotId});
-        const map = response['robot_status']['used_map'];
+        console.log(response)
+        const map_id = response['robot_status']['used_map_id'];
+        let map = await getCurrentMapData(map_id);
         const robotPos = response['robot_status']['position'];
         contentManager.paintMap(robotId, map);
-        contentManager.addRobotToMap(robotId, robotPos);
+        contentManager.updateRobotOnMap(robotId, robotPos);
         contentManager.setRobotStatus(response['robot_status'], robotId);
     },
     setRobotStatus: function (robotStatus, robotId) {
@@ -110,9 +114,10 @@ export let contentManager = {
             domManager.paintMap(`robot-${robotId}-map`, map);
         }
     },
-    addRobotToMap: function (robotId, robotPos) {
+    updateRobotOnMap: function (robotId, robotPos) {
         if (robotPos !== 'unknown'){
-            domManager.addRobotToMap(`robot-${robotId}-map`, robotPos);
+            domManager.updateRobotOnMap(`robot-${robotId}-map`, robotPos, robotLastPos);
+            robotLastPos = robotPos
         }
     }
 }
@@ -132,4 +137,20 @@ function closeRobotDetailsHandler(evt){
     domManager.purgeContainer(`${robotSn}-container`)
     contentManager.clearRobotReportInterval(robotId)
     contentManager.addRobotDetailsBtn(data)
+}
+
+async function getCurrentMapData(map_id){
+    if (map_id) {
+        let map
+        if (!(map_id in map_cache)) {
+            if (map_cache[map_id]) {
+                map = map_cache[map_id];
+            } else {
+                map_cache[map_id] = undefined;
+                map = await dataHandler.getStoredMap({'map_id': map_id});
+                map_cache[map_id] = map;
+            }
+        }
+        return map
+    }
 }

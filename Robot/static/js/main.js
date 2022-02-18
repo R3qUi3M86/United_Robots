@@ -1,19 +1,23 @@
-let namespace = '/update'
+let namespace = '/robot-update'
 let operator_socket = io.connect(document.domain + ':' + 5050 + namespace);
 let web_socket = io.connect(document.domain + ':' + 5000 + namespace);
 let display_update_interval = setInterval(updateRobot, 300)
 let webWifi = true
 let opWifi = true
+let connectedToWeb
+let connectedToOp
+let webReconnectInterval
+let opReconnectInterval
 
 async function updateRobot(){
     let response = await apiGet("/get_update");
     updateDisplay(response)
-    if (webWifi){
+    if (webWifi && connectedToWeb){
         web_socket.emit('update_status', response)
     } else {
         apiPost("/connection", {'internet_conn': false})
     }
-    if (opWifi){
+    if (opWifi && connectedToOp){
         operator_socket.emit('update_status', response)
     } else {
         apiPost("/connection", {'operator_conn': false})
@@ -21,40 +25,60 @@ async function updateRobot(){
 }
 
 web_socket.on('receive_conn', function (data){
-    apiPost("/connection", data)
+    apiPost("/connection", data);
+    connectedToWeb = true;
+    clearInterval(webReconnectInterval)
 })
 
 web_socket.on('connect_error', function (err){
-    apiPost("/connection", {'internet_conn': false})
+    apiPost("/connection", {'internet_conn': false});
+    connectedToWeb = false;
+    if (!webReconnectInterval) {
+        webReconnectInterval = setInterval(reconnectToWebSocket, 10000);
+    }
 })
 
 operator_socket.on('receive_conn', function (data){
-    apiPost("/connection", data)
+    apiPost("/connection", data);
+    connectedToOp = true;
+    clearInterval(opReconnectInterval)
 })
 
 operator_socket.on('connect_error', function (err){
-    apiPost("/connection", {'operator_conn': false})
-})
-
-operator_socket.on('receive_command', function (data) {
-    console.log(data)
-    issueCommand(data)
-})
-
-async function issueCommand(data){
-    const response = await apiPost("/command_robot", data);
-    if (response['status'] === 'ok') {
-        if (response['map_data']) {
-            if (webWifi && response['internet_conn']) {
-                web_socket.emit('map_upload', {'map_id': data['map_id'], 'map_data': response['map_data']})
-            } else {
-                console.error('Map upload failed - no internet connection!')
-            }
-        }
-    } else {
-        console.warn('Unauthorized user tried to issue command - refused!')
+    apiPost("/connection", {'operator_conn': false});
+    connectedToOp = false;
+    if (!opReconnectInterval) {
+        opReconnectInterval = setInterval(reconnectToOpSocket, 10000);
     }
+})
+
+function reconnectToWebSocket(){
+    web_socket.connect()
 }
+
+function reconnectToOpSocket(){
+    operator_socket.connect()
+}
+
+// operator_socket.on('receive_command', function (data) {
+//     console.log(data)
+//     issueCommand(data)
+// })
+
+// async function issueCommand(data){
+//     const response = await apiPost("/command_robot", data);
+//     if (response['status'] === 'ok') {
+//         if (response['map_data']) {
+//             if (webWifi && response['internet_conn']) {
+//                 web_socket.emit('map_upload', {'map_id': data['map_id'], 'map_data': response['map_data']})
+//             } else {
+//                 console.error('Map upload failed - no internet connection!')
+//             }
+//         }
+//     } else {
+//         console.warn('Unauthorized user tried to issue command - refused!')
+//     }
+// }
 
 function updateDisplay(data){
     const internetStatusElement = document.getElementById("internet-conn-status");
@@ -184,12 +208,12 @@ function opWifiToggleHandler(evt){
         targetBtn.classList.add('btn-danger')
         targetBtn.innerText = "Op WiFi OFF"
         opWifi = false
-        opWifi.disconnect()
+        operator_socket.disconnect()
     } else {
         targetBtn.classList.remove('btn-danger')
         targetBtn.classList.add('btn-success')
         targetBtn.innerText = "Op WiFi ON"
         opWifi = true
-        opWifi.connect()
+        operator_socket.connect()
     }
 }

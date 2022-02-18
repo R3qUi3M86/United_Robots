@@ -107,13 +107,9 @@ def connect_operator():
 def disconnect_operator():
     global operator_socket
     print(database_manager.robotsRoutedStatus)
-    robot_id = None
     for key in database_manager.robotsRoutedStatus:
         if request.sid == database_manager.robotsRoutedStatus[key]['conn_sid']:
-            robot_id = key
-            break
-    if robot_id:
-        del database_manager.robotsRoutedStatus[robot_id]
+            del database_manager.robotsRoutedStatus[key]
     operator_socket = None
 
 

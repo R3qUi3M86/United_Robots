@@ -4,9 +4,17 @@ export let dataHandler = {
     },
     getRobotStatus: async function (payload) {
         const response =  await apiPost("/robot-status", payload);
-        logResponseStatus(response)
-        return response
+        logResponseStatus(response);
+        return response;
     },
+    getStoredMap: async function(payload){
+        const response = await apiPost('/get-map', payload);
+        console.log(response);
+        return response['map'];
+    },
+    updateRobotWebStatus: async function(payload){
+        return await apiPost('/web-update', payload);
+    }
     // createNewBoard: async function (payload) {
     //     const response = await apiPost(`/api/boards/new`, payload);
     //     logResponseStatus(response)

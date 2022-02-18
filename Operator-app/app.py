@@ -35,8 +35,17 @@ def get_robot_status():
     return jsonify({'response_status': 'ok', 'robot_status': robot_status})
 
 
-# @socket.on("connect", namespace='/status-update')
-# def connect_robot():
+@app.route("/get-map", methods=["POST"])
+def get_map():
+    map_id = request.json['map_id']
+    requested_map = maps_data.maps_data[map_id]
+    print(requested_map)
+    return jsonify({'response_status': 'ok', 'map': requested_map})
+
+
+@socket.on("connect", namespace='/robot-update')
+def connect_robot():
+    emit('receive_conn', {'operator_conn': True})
 
 
 @socket.on("disconnect", namespace='/robot-update')
@@ -47,6 +56,8 @@ def disconnect_robot():
         if request.sid == data_manager.robotsDirectStatus[key]['conn_sid']:
             robot_id = key
             break
+    data = {'robot_id': robot_id, 'status': 'operator_lost_connection'}
+    emit('receive_robot_update', data, room=user_conn_socket, namespace='/operator-update')
     del data_manager.robotsDirectStatus[robot_id]
 
 
@@ -58,34 +69,35 @@ def receive_robot_status_update_from_robot(data):
                                                          'operator_conn': data['operator_conn'],
                                                          'activity': data['activity'],
                                                          'position': data['position'],
-                                                         'used_map_id': data['used_map'],
+                                                         'used_map_id': data['used_map_id'],
                                                          'conn_sid': request.sid,
                                                          'timestamp': time()}
-    emit('receive_conn', {'operator_conn': True})
+    data['timestamp'] = time()
+    emit('receive_robot_update', data, room=user_conn_socket, namespace='/operator-update')
+    if not data_manager.robotsDirectStatus[data['robot_id']]['internet_conn']:
+        if data['robot_id'] in data_manager.robotsWebStatus:
+            del data_manager.robotsWebStatus[data['robot_id']]
 
 
-@socket.on("disconnect", namespace='/web-update')
-def disconnect_web_service():
-    print(data_manager.robotsWebStatus)
-    robot_id = None
-    for key in data_manager.robotsWebStatus:
-        if request.sid == data_manager.robotsWebStatus[key]['conn_sid']:
-            robot_id = key
-            break
-    del data_manager.robotsWebStatus[robot_id]
+@socket.on("connect", namespace='/operator-update')
+def connect_operator():
+    global user_conn_socket
+    user_conn_socket = request.sid
 
 
-@socket.on("update_status", namespace='/web-update')
-def receive_robot_status_update_from_web(data):
-    data_manager.robotsWebStatus[data['robot_id']] = {'robot_name': data['robot_name'],
-                                                      'robot_sn': data['robot_sn'],
-                                                      'internet_conn': data['internet_conn'],
-                                                      'operator_conn': data['operator_conn'],
-                                                      'activity': data['activity'],
-                                                      'position': data['position'],
-                                                      'used_map_id': data['used_map'],
-                                                      'conn_sid': request.sid,
-                                                      'timestamp': time()}
+@app.route("/web-update", methods=["POST"])
+def receive_robot_status_update_from_web():
+    data = request.json
+    if 'status' in data:
+        if data['status'] == 'web_lost_connection':
+            if data['robot_id'] in data_manager.robotsWebStatus:
+                del data_manager.robotsWebStatus[data['robot_id']]
+        elif data['status'] == 'operator_lost_web_connection':
+            data_manager.robotsWebStatus = {}
+    else:
+        data_manager.robotsWebStatus[data['robot_id']] = data
+
+    return {'status': 'ok'}
 
 
 def main():
