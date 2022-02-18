@@ -3,6 +3,8 @@ import {dataHandler} from "../data/dataHandler.js";
 import {domManager} from "../view/domManager.js";
 
 let robotReportIntervals = {}
+let map_cache = {}
+let robotLastPos
 
 export let contentManager = {
     loadRobots: async function () {
@@ -33,8 +35,9 @@ export let contentManager = {
         domManager.purgeContainer(robotContainer.id);
         domManager.addChild(robotContainer.id, content);
         this.setRobotReportInterval(robotId);
-        await contentManager.addUploadMapButton({'id': robotId, 'robot_sn': robotSn});
-        contentManager.addCloseButton({'id': robotId, 'robot_sn': robotSn, 'robot_name': robotName});
+        contentManager.addUploadMapButton({'robot_id': robotId, 'robot_sn': robotSn});
+        contentManager.addDownloadMapButton({'robot_id': robotId, 'robot_sn': robotSn});
+        contentManager.addCloseButton({'robot_id': robotId, 'robot_sn': robotSn, 'robot_name': robotName});
         this.getRobotWebStatusReport(robotId)
     },
     setRobotReportInterval: function (robotId) {
@@ -44,11 +47,12 @@ export let contentManager = {
         clearInterval(robotReportIntervals[robotId])
     },
     getRobotWebStatusReport: async function (robotId){
-        const response = await dataHandler.getRobotStatus({'id': robotId});
-        const map = response['robot_status']['used_map'];
+        const response = await dataHandler.getRobotStatus({'robot_id': robotId});
+        const map_id = response['robot_status']['used_map_id'];
+        let map = await getCurrentMapData(map_id);
         const robotPos = response['robot_status']['position'];
         contentManager.paintMap(robotId, map);
-        contentManager.addRobotToMap(robotId, robotPos);
+        contentManager.updateRobotOnMap(robotId, robotPos, robotLastPos);
         contentManager.setRobotStatus(response['robot_status'], robotId);
     },
     setRobotStatus: function (robotStatus, robotId) {
@@ -62,11 +66,12 @@ export let contentManager = {
         let internetConnStatusType;
         let operatorConnStatusType;
 
-        console.log(internetConn)
         if (internetConn){
             domManager.enableButton(`robot-${robotId}-upload-btn`)
+            domManager.enableButton(`robot-${robotId}-download-btn`)
         } else {
             domManager.disableButton(`robot-${robotId}-upload-btn`)
+            domManager.disableButton(`robot-${robotId}-download-btn`)
         }
 
         if (internetConn){
@@ -98,25 +103,51 @@ export let contentManager = {
             i++;
         }
     },
-    addUploadMapButton: async function (robotData){
+    addUploadMapButton: function (robotData){
         const buttonBuilder = htmlFactory(htmlTemplates.button);
+        const content = buttonBuilder(buttonTypes.sendMapDataBtn, robotData);
+        domManager.addChild(`robot-${robotData['robot_id']}-lower-ui`, content);
+        domManager.disableButton(`robot-${robotData['robot_id']}-upload-btn`)
+        contentManager.addUploadMapList(robotData)
+    },
+    addDownloadMapButton: function (robotData){
+        const buttonBuilder = htmlFactory(htmlTemplates.button);
+        const content = buttonBuilder(buttonTypes.getMapDataBtn, robotData);
+        domManager.addChild(`robot-${robotData['robot_id']}-lower-ui`, content);
+        domManager.disableButton(`robot-${robotData['robot_id']}-download-btn`)
+        contentManager.addDownloadMapList(robotData)
+    },
+    addUploadMapList: async function(robotData){
         const mapList = await dataHandler.getMapsList()
-        const content = buttonBuilder(buttonTypes.sendMapDataBtn, robotData, mapList);
-        domManager.addChild(`robot-${robotData['id']}-lower-ui`, content);
-        domManager.disableButton(`robot-${robotData['id']}-upload-btn`)
+        const buttonBuilder = htmlFactory(htmlTemplates.button);
+        console.log(mapList)
         for (let mapId of mapList){
+            const content = buttonBuilder(buttonTypes.sendMapDataListBtn, robotData, mapId);
+            domManager.addChild(`robot-${robotData['robot_id']}-drop-menu-upload`, content);
             domManager.addEventListener(
-                `robot-${robotData['id']}-upload-map-${mapId}`,
+                `robot-${robotData['robot_id']}-upload-map-${mapId}`,
                 "click",
                 uploadMapHandler);
+        }
+    },
+    addDownloadMapList: async function(robotData){
+        const mapList = await dataHandler.getRobotMapsList(5000+parseInt(robotData['robot_id']))
+        const buttonBuilder = htmlFactory(htmlTemplates.button);
+        for (let mapId of mapList){
+            const content = buttonBuilder(buttonTypes.getMapDataListBtn, robotData, mapId);
+            domManager.addChild(`robot-${robotData['robot_id']}-drop-menu-download`, content);
+            domManager.addEventListener(
+                `robot-${robotData['robot_id']}-download-map-${mapId}`,
+                "click",
+                downloadMapHandler);
         }
     },
     addCloseButton: function (robotData){
         const buttonBuilder = htmlFactory(htmlTemplates.button);
         const content = buttonBuilder(buttonTypes.closeBtn, robotData);
-        domManager.addChild(`robot-${robotData['id']}-lower-ui`, content);
+        domManager.addChild(`robot-${robotData['robot_id']}-header`, content);
         domManager.addEventListener(
-            `robot-${robotData['id']}-close-btn`,
+            `robot-${robotData['robot_id']}-close-btn`,
             "click",
             closeRobotDetailsHandler);
     },
@@ -125,9 +156,10 @@ export let contentManager = {
             domManager.paintMap(`robot-${robotId}-map`, map);
         }
     },
-    addRobotToMap: function (robotId, robotPos) {
+    updateRobotOnMap: function (robotId, robotPos) {
         if (robotPos !== 'unknown'){
-            domManager.addRobotToMap(`robot-${robotId}-map`, robotPos);
+            domManager.updateRobotOnMap(`robot-${robotId}-map`, robotPos, robotLastPos);
+            robotLastPos = robotPos
         }
     }
 }
@@ -139,6 +171,13 @@ function loadRobotDetailsHandler(evt){
 }
 
 function uploadMapHandler(evt){
+    const targetBtn = evt.currentTarget
+    const robotId = targetBtn.dataset.robotId
+    const mapId = targetBtn.dataset.mapId
+    dataHandler.uploadMapToRobot(5000+parseInt(robotId), mapId)
+}
+
+function downloadMapHandler(evt){
 
 }
 
@@ -147,8 +186,24 @@ function closeRobotDetailsHandler(evt){
     const robotId = button.dataset.robotId;
     const robotSn = button.dataset.robotSn;
     const robotName = button.dataset.robotName;
-    const data = {'id': robotId, 'robot_sn': robotSn, 'robot_name': robotName}
+    const data = {'robot_id': robotId, 'robot_sn': robotSn, 'robot_name': robotName}
     domManager.purgeContainer(`${robotSn}-container`)
     contentManager.clearRobotReportInterval(robotId)
     contentManager.addRobotDetailsBtn(data)
+}
+
+async function getCurrentMapData(map_id){
+    if (map_id) {
+        let map
+        if (!(map_id in map_cache)) {
+            if (map_cache[map_id]) {
+                map = map_cache[map_id];
+            } else {
+                map_cache[map_id] = undefined;
+                const map_data = await dataHandler.getServerMap({'map_id': map_id});
+                map_cache[map_id] = map_data['map'];
+            }
+        }
+        return map
+    }
 }

@@ -8,6 +8,9 @@ export const buttonTypes = {
     robotBtn: "Robot details",
     closeBtn: "Back to main page",
     sendMapDataBtn: "Send map data",
+    getMapDataBtn: "Get map data",
+    sendMapDataListBtn: "Send map data list btn",
+    getMapDataListBtn: "Get map data list btn"
 }
 
 export const statusTypes = {
@@ -35,7 +38,7 @@ function robotContainerBuilder(data){
     const robot = document.createElement('div')
     robot.id = `${data['robot_sn']}-container`
     robot.classList.add('d-flex', 'justify-content-center')
-    robot.setAttribute('data-robot-id', data['id'])
+    robot.setAttribute('data-robot-id', data['robot_id'])
     robot.setAttribute('data-robot-sn', data['robot_sn'])
     robot.setAttribute('data-robot-name', data['robot_name'])
     return robot;
@@ -48,7 +51,7 @@ function buttonBuilder(type, data, secData){
 
             robotBtn.id = `${data['robot_sn']}-btn`
             robotBtn.classList.add('btn', 'btn-primary', 'mt-3');
-            robotBtn.setAttribute('data-robot-id', data['id'])
+            robotBtn.setAttribute('data-robot-id', data['robot_id'])
             robotBtn.setAttribute('data-robot-sn', data['robot_sn'])
             robotBtn.setAttribute('data-robot-name', data['robot_name'])
             robotBtn.innerText = data['robot_sn'] + ": " + data['robot_name']
@@ -56,9 +59,9 @@ function buttonBuilder(type, data, secData){
 
         case buttonTypes.closeBtn:
             const closeBtn = document.createElement('button');
-            closeBtn.id = `robot-${data['id']}-close-btn`;
+            closeBtn.id = `robot-${data['robot_id']}-close-btn`;
             closeBtn.classList.add('btn', 'btn-primary');
-            closeBtn.setAttribute('data-robot-id', data['id']);
+            closeBtn.setAttribute('data-robot-id', data['robot_id']);
             closeBtn.setAttribute('data-robot-sn', data['robot_sn']);
             closeBtn.setAttribute('data-robot-name', data['robot_name']);
             closeBtn.innerText = 'Close';
@@ -69,39 +72,74 @@ function buttonBuilder(type, data, secData){
             const button = document.createElement('button')
             const dropDownMenu = document.createElement('ul');
 
-            button.classList.add('btn', 'btn-primary')
-            button.setAttribute('data-robot-id', data['id'])
-            button.innerText = 'Upload Maps'
+            button.id = `robot-${data['robot_id']}-upload-btn`;
+            button.classList.add('btn', 'btn-primary', 'dropdown-toggle')
+            button.setAttribute('data-robot-id', data['robot_id'])
+            button.setAttribute('type', 'button');
+            button.setAttribute('data-bs-toggle','dropdown');
+            button.setAttribute('aria-expanded', 'false');
+            button.innerText = 'Web Maps -> Robot'
 
             dropDownWrapper.classList.add('dropdown');
             dropDownWrapper.appendChild(button);
             dropDownWrapper.appendChild(dropDownMenu);
 
-            dropDownMenu.id = `robot-${data['id']}-drop-menu`
+            dropDownMenu.id = `robot-${data['robot_id']}-drop-menu-upload`
             dropDownMenu.classList.add('dropdown-menu', 'bg-light');
-            dropDownMenu.setAttribute('aria-labelledby', `robot-${data['id']}-dropdown-container`);
-
-            for (let mapId of secData){
-                const menuListItem1 = document.createElement('li');
-                const listActionMap1 = document.createElement('a');
-                dropDownMenu.appendChild(menuListItem1);
-                menuListItem1.appendChild(listActionMap1);
-                listActionMap1.id = `robot-${data['id']}-upload-map-${mapId}`;
-                listActionMap1.classList.add("dropdown-item");
-                listActionMap1.setAttribute('data-robot-id', data['id'])
-                listActionMap1.setAttribute('data-map-id', mapId)
-                listActionMap1.onclick = function () {return false}
-                listActionMap1.href = "#";
-                listActionMap1.innerHTML = `Map-${mapId}`;
-            }
-
-            button.id = `robot-${data['id']}-upload-btn`;
-            button.classList.add('dropdown-toggle');
-            button.setAttribute('type', 'button');
-            button.setAttribute('data-bs-toggle','dropdown');
-            button.setAttribute('aria-expanded', 'false');
+            dropDownMenu.setAttribute('aria-labelledby', `robot-${data['robot_id']}-dropdown-container`);
 
             return dropDownWrapper;
+
+        case buttonTypes.sendMapDataListBtn:
+            const menuListItem = document.createElement('li');
+            const listActionMap = document.createElement('a');
+            menuListItem.appendChild(listActionMap);
+            listActionMap.id = `robot-${data['robot_id']}-upload-map-${secData}`;
+            listActionMap.classList.add("dropdown-item");
+            listActionMap.setAttribute('data-robot-id', data['robot_id'])
+            listActionMap.setAttribute('data-map-id', secData)
+            listActionMap.onclick = function () {return false}
+            listActionMap.href = "#";
+            listActionMap.innerHTML = `Map-${secData}`;
+
+            return menuListItem;
+
+        case buttonTypes.getMapDataBtn:
+            const dropDownWrapperGet = document.createElement('div');
+            const buttonGet = document.createElement('button')
+            const dropDownMenuGet = document.createElement('ul');
+
+            buttonGet.id = `robot-${data['robot_id']}-download-btn`;
+            buttonGet.classList.add('btn', 'btn-primary', 'dropdown-toggle')
+            buttonGet.setAttribute('data-robot-id', data['robot_id'])
+            buttonGet.setAttribute('type', 'button');
+            buttonGet.setAttribute('data-bs-toggle','dropdown');
+            buttonGet.setAttribute('aria-expanded', 'false');
+            buttonGet.innerText = 'Robot Maps -> Web'
+
+            dropDownWrapperGet.classList.add('dropdown');
+            dropDownWrapperGet.appendChild(buttonGet);
+            dropDownWrapperGet.appendChild(dropDownMenuGet);
+
+            dropDownMenuGet.id = `robot-${data['robot_id']}-drop-menu-download`
+            dropDownMenuGet.classList.add('dropdown-menu', 'bg-light');
+            dropDownMenuGet.setAttribute('aria-labelledby', `robot-${data['robot_id']}-dropdown-container`);
+
+            return dropDownWrapperGet;
+
+        case buttonTypes.getMapDataListBtn:
+            const menuListItemGet = document.createElement('li');
+            const listActionMapGet = document.createElement('a');
+            menuListItemGet.appendChild(listActionMapGet);
+            listActionMapGet.id = `robot-${data['robot_id']}-download-map-${secData}`;
+            listActionMapGet.classList.add("dropdown-item");
+            listActionMapGet.setAttribute('data-robot-id', data['robot_id'])
+            listActionMapGet.setAttribute('data-map-id', secData)
+            listActionMapGet.onclick = function () {return false}
+            listActionMapGet.href = "#";
+            listActionMapGet.innerHTML = `Map-${secData}`;
+
+            return menuListItemGet;
     }
 }
 
@@ -109,7 +147,8 @@ function robotStatusBuilder(type, statusText,robotId, robotSn, robotName){
     switch (type) {
         case statusTypes.general:
             const divWrapper = document.createElement('div');
-            const description = document.createElement('div');
+            const headerWrapper = document.createElement('div');
+            const description = document.createElement('span');
             const map = document.createElement('div');
             const robotStatus = document.createElement('div');
             const internetConnStatus = document.createElement('div');
@@ -126,15 +165,19 @@ function robotStatusBuilder(type, statusText,robotId, robotSn, robotName){
             const positionSpan = document.createElement('span');
             const lowerUI = document.createElement('div')
 
-            divWrapper.appendChild(description)
+            divWrapper.appendChild(headerWrapper)
             divWrapper.appendChild(map)
             divWrapper.appendChild(robotStatus)
             divWrapper.appendChild(lowerUI)
 
-            divWrapper.id = `robot-${robotId}-details-card`
-            divWrapper.classList.add('card', 'px-3', 'py-3', 'my-3')
+            divWrapper.id = `robot-${robotId}-details-card`;
+            divWrapper.classList.add('card', 'px-3', 'py-3', 'my-3');
 
-            description.classList.add('text-center', 'card-title');
+            headerWrapper.id = `robot-${robotId}-header`;
+            headerWrapper.classList.add('card-title', 'd-flex', 'justify-content-between');
+            headerWrapper.appendChild(description);
+
+            description.classList.add('pt-1', 'px-1');
             description.innerText = robotSn + ": " + robotName;
 
             map.id = `robot-${robotId}-map`;

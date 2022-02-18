@@ -1,21 +1,22 @@
 from flask import Flask, render_template, url_for, request, redirect, session, jsonify
 from flask_socketio import SocketIO, emit
+from engineio.payload import Payload
 from dotenv import load_dotenv
 from util import utilities
 from util import maps_data
 from time import time
 import database_manager
 import bcrypt
+from copy import deepcopy
 
 app = Flask(__name__)
 app.secret_key = "super duper hyper turbo and very salty secret key!"
 socket = SocketIO(app, cors_allowed_origins='*')
 load_dotenv()
 
-user_conn_sockets = {}
-
 # utilities.add_all_maps_to_database()
 
+operator_socket = None
 
 @app.route("/")
 def index():
@@ -35,21 +36,30 @@ def get_robots():
 
 @app.route("/robot-status", methods=["POST"])
 def get_robot_status():
-    robot_id = request.json['id']
+    robot_id = request.json['robot_id']
     robot_status = database_manager.get_robot_status(int(robot_id))
     return jsonify({'response_status': 'ok', 'robot_status': robot_status})
 
 
 @app.route("/maps")
 def get_maps():
-    return jsonify(list(maps_data.maps_data.keys()))
-
-# @socket.on("connect", namespace='/status-update')
-# def connect_robot():
+    return jsonify(database_manager.get_maps())
 
 
-@socket.on("disconnect", namespace='/update')
-def disconnect_entity():
+@app.route("/get-map", methods=["POST"])
+def get_map():
+    map_id = request.json['map_id']
+    map_data = database_manager.get_map(map_id)
+    return jsonify({'response_status': 'ok', 'map_data': map_data})
+
+
+@socket.on("connect", namespace='/robot-update')
+def connect_robot():
+    emit('receive_conn', {'internet_conn': True})
+
+
+@socket.on("disconnect", namespace='/robot-update')
+def disconnect_robot():
     print(database_manager.robotsDirectStatus)
     robot_id = None
     for key in database_manager.robotsDirectStatus:
@@ -57,35 +67,71 @@ def disconnect_entity():
             robot_id = key
             break
     del database_manager.robotsDirectStatus[robot_id]
+    if operator_socket:
+        data = {'robot_id': robot_id, 'status': 'web_lost_connection'}
+        emit('receive_update', data, namespace='/operator-update', room=operator_socket)
 
 
-@socket.on("update_status", namespace='/update')
-def receive_robot_status_update(data):
-    if data['entity'] == 'robot':
-        database_manager.robotsDirectStatus[data['robot_id']] = {'internet_conn': data['internet_conn'],
+@socket.on("update_status", namespace='/robot-update')
+def receive_robot_status_update_from_robot(data):
+    database_manager.robotsDirectStatus[data['robot_id']] = {'robot_name': data['robot_name'],
+                                                             'robot_sn': data['robot_sn'],
+                                                             'internet_conn': data['internet_conn'],
+                                                             'operator_conn': data['operator_conn'],
+                                                             'activity': data['activity'],
+                                                             'position': data['position'],
+                                                             'used_map_id': data['used_map_id'],
+                                                             'conn_sid': request.sid,
+                                                             'timestamp': time()}
+
+    if operator_socket:
+        exchange_data = deepcopy(data)
+        exchange_data['timestamp'] = time()
+        emit('receive_update', exchange_data, namespace='/operator-update',
+             room=operator_socket)
+
+
+@socket.on("map_upload", namespace='/robot-update')
+def download_robot_map(map_data):
+    database_manager.add_map_to_db(map_data)
+
+
+@socket.on("connect", namespace='/operator-update')
+def connect_operator():
+    global operator_socket
+    operator_socket = request.sid
+    emit('receive_conn', {'internet_conn': True})
+
+
+@socket.on("disconnect", namespace='/operator-update')
+def disconnect_operator():
+    global operator_socket
+    print(database_manager.robotsRoutedStatus)
+    robot_id = None
+    for key in database_manager.robotsRoutedStatus:
+        if request.sid == database_manager.robotsRoutedStatus[key]['conn_sid']:
+            robot_id = key
+            break
+    if robot_id:
+        del database_manager.robotsRoutedStatus[robot_id]
+    operator_socket = None
+
+
+@socket.on("update_status", namespace='/operator-update')
+def receive_robot_status_update_from_op(data):
+    if 'status' in data and data['status'] == 'operator_lost_connection':
+        if data['robot_id'] in database_manager.robotsRoutedStatus:
+            del database_manager.robotsRoutedStatus[data['robot_id']]
+    else:
+        database_manager.robotsRoutedStatus[data['robot_id']] = {'robot_name': data['robot_name'],
+                                                                 'robot_sn': data['robot_sn'],
+                                                                 'internet_conn': data['internet_conn'],
                                                                  'operator_conn': data['operator_conn'],
                                                                  'activity': data['activity'],
                                                                  'position': data['position'],
-                                                                 'used_map_id': data['used_map'],
+                                                                 'used_map_id': data['used_map_id'],
                                                                  'conn_sid': request.sid,
                                                                  'timestamp': time()}
-        emit('receive_conn', {'internet_conn': True})
-
-    elif data['entity'] == 'operator':
-        database_manager.robotsRoutedStatus[data['robot_id']] = {'internet_conn': data['internet_conn'],
-                                                                 'operator_conn': data['operator_conn'],
-                                                                 'activity': data['activity'],
-                                                                 'position': data['position'],
-                                                                 'used_map_id': data['used_map'],
-                                                                 'conn_sid': request.sid,
-                                                                 'timestamp': time()}
-
-        user_conn_sockets[session['uid']] = request.sid
-
-
-@socket.on("map_upload", namespace='/update')
-def download_robot_map(data):
-    database_manager.add_map_to_db()
 
 
 def main():

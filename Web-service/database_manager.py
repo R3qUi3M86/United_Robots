@@ -5,7 +5,6 @@ from util import maps_data
 
 robotsDirectStatus = {}
 robotsRoutedStatus = {}
-maps_data_in_use_by_robots = {}
 
 
 def get_robot_status(robot_id):
@@ -20,14 +19,6 @@ def get_robot_status(robot_id):
     elif robot_id in robotsRoutedStatus:
         robot_status = robotsRoutedStatus[robot_id]
 
-    if 'used_map_id' in robot_status and robot_status['used_map_id']:
-        if robot_status['used_map_id'] in maps_data_in_use_by_robots:
-            robot_status['used_map'] = maps_data_in_use_by_robots[robot_status['used_map_id']]
-        else:
-            map_data = get_map(robot_status['used_map_id'])
-            if map_data:
-                robot_status['used_map'] = map_data
-
     return robot_status
 
 
@@ -36,7 +27,7 @@ def get_user_name(cursor: RealDictCursor, u_id) -> RealDictRow:
     query = """
         SELECT user_name
         FROM users
-        WHERE id = %(u_id)s
+        WHERE user_id = %(u_id)s
         """
     cursor.execute(query, {"u_id": u_id})
     return cursor.fetchone()['user_name']
@@ -45,7 +36,7 @@ def get_user_name(cursor: RealDictCursor, u_id) -> RealDictRow:
 @database_common.connection_handler
 def get_robots(cursor: RealDictCursor, u_id) -> list:
     query = """
-        SELECT id, robot_sn, robot_name
+        SELECT robot_id, robot_sn, robot_name
         FROM robots
         WHERE owner_id = %(u_id)s
         """
@@ -54,20 +45,36 @@ def get_robots(cursor: RealDictCursor, u_id) -> list:
 
 
 @database_common.connection_handler
-def get_map(cursor: RealDictCursor, map_id) -> list:
+def get_map(cursor: RealDictCursor, map_id) -> dict:
     query = """
-        SELECT map_data
+        SELECT map_id, map_data
         FROM maps
-        WHERE id = %(map_id)s
+        WHERE map_id = %(map_id)s
         """
     cursor.execute(query, {"map_id": map_id})
-    return cursor.fetchone()
+    db_data = cursor.fetchone()
+    return {'map_id': db_data['map_id'], 'map': eval(db_data['map_data'])}
+
+
+@database_common.connection_handler
+def get_maps(cursor: RealDictCursor) -> list:
+    query = """
+        SELECT map_id
+        FROM maps
+        """
+    cursor.execute(query)
+    db_rows = cursor.fetchall()
+    map_ids = []
+    for row in db_rows:
+        map_ids.append(row['map_id'])
+
+    return map_ids
 
 
 @database_common.connection_handler
 def add_map_to_db(cursor: RealDictCursor, map_data, map_id):
     query = """
-        INSERT INTO maps (id, map_data)
+        INSERT INTO maps (map_id, map_data)
         VALUES (%(map_id)s, %(map_data)s)
     """
     cursor.execute(query, {'map_id': map_id, 'map_data': map_data})
