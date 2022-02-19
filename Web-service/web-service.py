@@ -1,9 +1,7 @@
 from flask import Flask, render_template, url_for, request, redirect, session, jsonify
 from flask_socketio import SocketIO, emit
-from engineio.payload import Payload
 from dotenv import load_dotenv
 from util import utilities
-from util import maps_data
 from time import time
 import database_manager
 import bcrypt
@@ -17,6 +15,7 @@ load_dotenv()
 # utilities.add_all_maps_to_database()
 
 operator_socket = None
+
 
 @app.route("/")
 def index():
@@ -60,7 +59,7 @@ def connect_robot():
 
 @socket.on("disconnect", namespace='/robot-update')
 def disconnect_robot():
-    print(database_manager.robotsDirectStatus)
+    print(f'disconnecting: {database_manager.robotsDirectStatus}')
     robot_id = None
     for key in database_manager.robotsDirectStatus:
         if request.sid == database_manager.robotsDirectStatus[key]['conn_sid']:
@@ -69,6 +68,7 @@ def disconnect_robot():
     del database_manager.robotsDirectStatus[robot_id]
     if operator_socket:
         data = {'robot_id': robot_id, 'status': 'web_lost_connection'}
+        print(f'emitting to operator: {data}')
         emit('receive_update', data, namespace='/operator-update', room=operator_socket)
 
 
@@ -81,6 +81,8 @@ def receive_robot_status_update_from_robot(data):
                                                              'activity': data['activity'],
                                                              'position': data['position'],
                                                              'used_map_id': data['used_map_id'],
+                                                             'loaded_maps': data['loaded_maps'],
+                                                             'has_started': data['has_started'],
                                                              'conn_sid': request.sid,
                                                              'timestamp': time()}
 
@@ -100,16 +102,18 @@ def download_robot_map(map_data):
 def connect_operator():
     global operator_socket
     operator_socket = request.sid
+    print('operator connected...')
     emit('receive_conn', {'internet_conn': True})
 
 
 @socket.on("disconnect", namespace='/operator-update')
 def disconnect_operator():
     global operator_socket
-    print(database_manager.robotsRoutedStatus)
+    print('operator disconnected, clearing cashed robot data')
     for key in database_manager.robotsRoutedStatus:
         if request.sid == database_manager.robotsRoutedStatus[key]['conn_sid']:
             del database_manager.robotsRoutedStatus[key]
+    print('disconnecting operator')
     operator_socket = None
 
 
@@ -126,6 +130,8 @@ def receive_robot_status_update_from_op(data):
                                                                  'activity': data['activity'],
                                                                  'position': data['position'],
                                                                  'used_map_id': data['used_map_id'],
+                                                                 'loaded_maps': data['loaded_maps'],
+                                                                 'has_started': data['has_started'],
                                                                  'conn_sid': request.sid,
                                                                  'timestamp': time()}
 

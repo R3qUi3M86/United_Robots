@@ -7,10 +7,12 @@ export const htmlTemplates = {
 export const buttonTypes = {
     robotBtn: "Robot details",
     closeBtn: "Back to main page",
-    sendMapDataBtn: "Send map data",
-    getMapDataBtn: "Get map data",
-    sendMapDataListBtn: "Send map data list btn",
-    getMapDataListBtn: "Get map data list btn"
+    setMapDataBtn: "Send map data",
+    setMapDataListBtn: "Set map data list btn",
+    arrowBtn: "Arrow button",
+    robotActionBtn: "Do stuff button",
+    startRobotBtn: "Start robot button",
+    shutdownRobotBtn: "Shutdown robot button",
 }
 
 export const statusTypes = {
@@ -18,6 +20,14 @@ export const statusTypes = {
     good: "Good status",
     neutral: "Neutral status",
     bad: "Bad status"
+}
+
+export const directions = {
+    up: "up",
+    down: "down",
+    left: "left",
+    right: "right",
+    grid: "grid"
 }
 
 export function htmlFactory(template) {
@@ -35,12 +45,12 @@ export function htmlFactory(template) {
 }
 
 function robotContainerBuilder(data){
-    const robot = document.createElement('div')
-    robot.id = `${data['robot_sn']}-container`
-    robot.classList.add('d-flex', 'justify-content-center')
-    robot.setAttribute('data-robot-id', data['robot_id'])
-    robot.setAttribute('data-robot-sn', data['robot_sn'])
-    robot.setAttribute('data-robot-name', data['robot_name'])
+    const robot = document.createElement('div');
+    robot.id = `${data['robot_sn']}-container`;
+    robot.classList.add('d-flex', 'justify-content-center');
+    robot.setAttribute('data-robot-id', data['robot_id']);
+    robot.setAttribute('data-robot-sn', data['robot_sn']);
+    robot.setAttribute('data-robot-name', data['robot_name']);
     return robot;
 }
 
@@ -49,13 +59,13 @@ function buttonBuilder(type, data, secData){
         case buttonTypes.robotBtn:
             const robotBtn = document.createElement('button');
 
-            robotBtn.id = `${data['robot_sn']}-btn`
+            robotBtn.id = `${data['robot_sn']}-btn`;
             robotBtn.classList.add('btn', 'btn-primary', 'mt-3');
-            robotBtn.setAttribute('data-robot-id', data['robot_id'])
-            robotBtn.setAttribute('data-robot-sn', data['robot_sn'])
-            robotBtn.setAttribute('data-robot-name', data['robot_name'])
-            robotBtn.innerText = data['robot_sn'] + ": " + data['robot_name']
-            return robotBtn
+            robotBtn.setAttribute('data-robot-id', data['robot_id']);
+            robotBtn.setAttribute('data-robot-sn', data['robot_sn']);
+            robotBtn.setAttribute('data-robot-name', data['robot_name']);
+            robotBtn.innerText = data['robot_sn'] + ": " + data['robot_name'];
+            return robotBtn;
 
         case buttonTypes.closeBtn:
             const closeBtn = document.createElement('button');
@@ -67,79 +77,91 @@ function buttonBuilder(type, data, secData){
             closeBtn.innerText = 'Close';
             return closeBtn;
 
-        case buttonTypes.sendMapDataBtn:
+        case buttonTypes.setMapDataBtn:
             const dropDownWrapper = document.createElement('div');
-            const button = document.createElement('button')
+            const button = document.createElement('button');
             const dropDownMenu = document.createElement('ul');
 
-            button.id = `robot-${data['robot_id']}-upload-btn`;
-            button.classList.add('btn', 'btn-primary', 'dropdown-toggle')
-            button.setAttribute('data-robot-id', data['robot_id'])
+            button.id = `robot-${data['robot_id']}-set-btn`;
+            button.classList.add('btn', 'btn-primary', 'dropdown-toggle', 'col-12');
+            button.setAttribute('data-robot-id', data['robot_id']);
             button.setAttribute('type', 'button');
-            button.setAttribute('data-bs-toggle','dropdown');
+            button.setAttribute('data-bs-toggle', 'dropdown');
             button.setAttribute('aria-expanded', 'false');
-            button.innerText = 'Web Maps -> Robot'
+            button.innerText = 'Set Used Map';
 
-            dropDownWrapper.classList.add('dropdown');
+            dropDownWrapper.classList.add('dropdown', 'col-5');
             dropDownWrapper.appendChild(button);
             dropDownWrapper.appendChild(dropDownMenu);
 
-            dropDownMenu.id = `robot-${data['robot_id']}-drop-menu-upload`
+            dropDownMenu.id = `robot-${data['robot_id']}-drop-menu-set`;
             dropDownMenu.classList.add('dropdown-menu', 'bg-light');
             dropDownMenu.setAttribute('aria-labelledby', `robot-${data['robot_id']}-dropdown-container`);
 
             return dropDownWrapper;
 
-        case buttonTypes.sendMapDataListBtn:
+        case buttonTypes.setMapDataListBtn:
             const menuListItem = document.createElement('li');
             const listActionMap = document.createElement('a');
             menuListItem.appendChild(listActionMap);
-            listActionMap.id = `robot-${data['robot_id']}-upload-map-${secData}`;
+            listActionMap.id = `robot-${data}-set-map-${secData}`;
             listActionMap.classList.add("dropdown-item");
-            listActionMap.setAttribute('data-robot-id', data['robot_id'])
-            listActionMap.setAttribute('data-map-id', secData)
-            listActionMap.onclick = function () {return false}
+            listActionMap.setAttribute('data-robot-id', data);
+            listActionMap.setAttribute('data-map-id', secData);
+            listActionMap.onclick = function () {return false};
             listActionMap.href = "#";
             listActionMap.innerHTML = `Map-${secData}`;
 
             return menuListItem;
 
-        case buttonTypes.getMapDataBtn:
-            const dropDownWrapperGet = document.createElement('div');
-            const buttonGet = document.createElement('button')
-            const dropDownMenuGet = document.createElement('ul');
+        case buttonTypes.arrowBtn:
+            const robotId = data;
+            const direction = secData;
+            const arrowBtn = document.createElement('button');
+            const arrowIcon = document.createElement('i');
 
-            buttonGet.id = `robot-${data['robot_id']}-download-btn`;
-            buttonGet.classList.add('btn', 'btn-primary', 'dropdown-toggle')
-            buttonGet.setAttribute('data-robot-id', data['robot_id'])
-            buttonGet.setAttribute('type', 'button');
-            buttonGet.setAttribute('data-bs-toggle','dropdown');
-            buttonGet.setAttribute('aria-expanded', 'false');
-            buttonGet.innerText = 'Robot Maps -> Web'
+            arrowBtn.id = `robot-${robotId}-move-${direction}`;
+            arrowBtn.classList.add('btn', 'btn-primary', 'disabled');
+            arrowBtn.appendChild(arrowIcon);
+            arrowBtn.setAttribute('data-robot-id', robotId);
+            arrowBtn.setAttribute('data-move-dir', direction);
+            if (direction !== directions.right){
+                if (direction !== directions.left) {
+                    arrowBtn.setAttribute("style", "margin-right: 3rem");
+                } else {
+                    arrowBtn.setAttribute("style", "margin-right: 3.3rem");
+                }
+            }
 
-            dropDownWrapperGet.classList.add('dropdown');
-            dropDownWrapperGet.appendChild(buttonGet);
-            dropDownWrapperGet.appendChild(dropDownMenuGet);
+            arrowIcon.classList.add('bi', `bi-arrow-${direction}`);
 
-            dropDownMenuGet.id = `robot-${data['robot_id']}-drop-menu-download`
-            dropDownMenuGet.classList.add('dropdown-menu', 'bg-light');
-            dropDownMenuGet.setAttribute('aria-labelledby', `robot-${data['robot_id']}-dropdown-container`);
+            return arrowBtn
 
-            return dropDownWrapperGet;
+        case buttonTypes.robotActionBtn:
+            const robotActionBtn = document.createElement('button');
+            robotActionBtn.id = `robot-${data}-action-btn`;
+            robotActionBtn.classList.add('btn', 'btn-warning', 'disabled','col-5');
+            robotActionBtn.setAttribute('data-robot-id', data);
+            robotActionBtn.innerText = "Do stuff...";
+            return robotActionBtn;
 
-        case buttonTypes.getMapDataListBtn:
-            const menuListItemGet = document.createElement('li');
-            const listActionMapGet = document.createElement('a');
-            menuListItemGet.appendChild(listActionMapGet);
-            listActionMapGet.id = `robot-${data['robot_id']}-download-map-${secData}`;
-            listActionMapGet.classList.add("dropdown-item");
-            listActionMapGet.setAttribute('data-robot-id', data['robot_id'])
-            listActionMapGet.setAttribute('data-map-id', secData)
-            listActionMapGet.onclick = function () {return false}
-            listActionMapGet.href = "#";
-            listActionMapGet.innerHTML = `Map-${secData}`;
+        case buttonTypes.startRobotBtn:
+            const startRobotBtn = document.createElement('button');
+            startRobotBtn.id = `robot-${data}-on-off-btn`;
+            startRobotBtn.classList.add('btn', 'btn-success', 'disabled', 'col-5');
+            startRobotBtn.setAttribute('data-robot-id', data);
+            startRobotBtn.setAttribute('data-on-off', 'start');
+            startRobotBtn.innerText = "Start Robot";
+            return startRobotBtn;
 
-            return menuListItemGet;
+        case buttonTypes.shutdownRobotBtn:
+            const shutdownRobotBtn = document.createElement('button');
+            shutdownRobotBtn.id = `robot-${data}-on-off-btn`;
+            shutdownRobotBtn.classList.add('btn', 'btn-danger', 'disabled', 'col-5');
+            shutdownRobotBtn.setAttribute('data-robot-id', data);
+            shutdownRobotBtn.setAttribute('data-on-off', 'shutdown');
+            shutdownRobotBtn.innerText = "Shutdown Robot";
+            return shutdownRobotBtn;
     }
 }
 
@@ -163,12 +185,16 @@ function robotStatusBuilder(type, statusText,robotId, robotSn, robotName){
             const operatorConnSpan = document.createElement('span');
             const activitySpan = document.createElement('span');
             const positionSpan = document.createElement('span');
-            const lowerUI = document.createElement('div')
+            const lowerUI = document.createElement('div');
+            const lowerUITop = document.createElement('div');
+            const lowerUIMiddle = document.createElement('div');
+            const lowerUIMiddleRight = document.createElement('div');
+            const lowerUIBottom = document.createElement('div');
 
-            divWrapper.appendChild(headerWrapper)
-            divWrapper.appendChild(map)
-            divWrapper.appendChild(robotStatus)
-            divWrapper.appendChild(lowerUI)
+            divWrapper.appendChild(headerWrapper);
+            divWrapper.appendChild(map);
+            divWrapper.appendChild(robotStatus);
+            divWrapper.appendChild(lowerUI);
 
             divWrapper.id = `robot-${robotId}-details-card`;
             divWrapper.classList.add('card', 'px-3', 'py-3', 'my-3');
@@ -208,7 +234,7 @@ function robotStatusBuilder(type, statusText,robotId, robotSn, robotName){
             positionStatus.appendChild(positionSpanTitle);
             positionStatus.appendChild(positionSpan);
 
-            robotStatus.id = `robot-${robotId}-status-wrapper`
+            robotStatus.id = `robot-${robotId}-status-wrapper`;
 
             internetConnStatus.id = `robot-${robotId}-internet-conn-status`;
             operatorConnStatus.id = `robot-${robotId}-operator-conn-status`;
@@ -221,9 +247,21 @@ function robotStatusBuilder(type, statusText,robotId, robotSn, robotName){
             positionSpanTitle.innerHTML = "Position: ";
 
             lowerUI.id = `robot-${robotId}-lower-ui`;
-            lowerUI.classList.add('d-flex', 'mt-3', 'justify-content-between')
+            lowerUI.classList.add('my-3');
+            lowerUI.appendChild(lowerUITop);
+            lowerUI.appendChild(lowerUIMiddle);
+            lowerUI.appendChild(lowerUIBottom);
+            lowerUIMiddle.appendChild(lowerUIMiddleRight)
 
-            return divWrapper
+            lowerUITop.id = `robot-${robotId}-lower-ui-top`;
+            lowerUIMiddle.id = `robot-${robotId}-lower-ui-middle`;
+            lowerUIMiddleRight.id = `robot-${robotId}-lower-ui-middle-right`;
+            lowerUIBottom.id = `robot-${robotId}-lower-ui-bottom`;
+            lowerUITop.classList.add('d-flex', 'mb-2', 'justify-content-between');
+            lowerUIMiddle.classList.add('d-flex', 'my-2', 'justify-content-between');
+            lowerUIBottom.classList.add('d-flex', 'mt-2', 'justify-content-between');
+
+            return divWrapper;
 
         case statusTypes.good:
             const goodStatusSpan = document.createElement('span');

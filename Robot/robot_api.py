@@ -1,7 +1,6 @@
 from flask import Flask, render_template, url_for, request, redirect, session, jsonify
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
-from robots import Cleaner, Terminator, Annihilator, UPLOAD
+from robots import Cleaner, UPLOAD
 import threading
 
 
@@ -37,7 +36,10 @@ def command_robot():
         if request.json['command'] == UPLOAD:
             return jsonify({'status': 'ok', 'map_data': str(robot.maps[request.json['map_id']]),
                             'internet_conn': robot.internet_connection})
-        return jsonify({'status': 'ok'})
+        if robot.name == 'Annihilator-3000' and request.json['command'] == 'do':
+            return jsonify({'event': 'annihilate!'})  # EASTER EGG
+        else:
+            return jsonify({'status': 'ok'})
     return jsonify({'status': 'access denied'})
 
 
@@ -79,9 +81,11 @@ def get_status_data():
                    'operator_conn': robot.operator_connection,
                    'activity': robot.activity,
                    'position': robot.position,
+                   'has_started': robot.has_started,
                    'loaded_maps': list(robot.maps.keys()),
                    'used_map_id': robot.used_map_id,
                    'log_report': log_report,
+                   'is_destroyed': robot.is_destroyed,
                    'entity': 'robot'}
 
     return status_data
@@ -92,7 +96,3 @@ def main():
     # Serving the favicon
     with app.app_context():
         app.add_url_rule('/favicon.ico', redirect_to=url_for('static', filename='favicon/favicon.ico'))
-
-
-if __name__ == '__main__':
-    main()

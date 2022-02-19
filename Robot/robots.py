@@ -9,7 +9,7 @@ POWER_ON = 'power_on'
 POWER_OFF = 'power_off'
 DOWNLOAD = 'download'
 UPLOAD = 'upload'
-SET_MAP = 'set_map'
+USE_MAP = 'use_map'
 DO = 'do'
 MOVE = 'move'
 SELF_DESTRUCT = 'self_destruct'
@@ -96,7 +96,7 @@ class Robot:
             self.download_map_data(command_data['map_id'], command_data['map'])
         elif command_data['command'] == UPLOAD:
             self.upload_map_data(command_data['map_id'])
-        elif command_data['command'] == SET_MAP:
+        elif command_data['command'] == USE_MAP:
             self.set_used_map(command_data['map_id'])
         elif command_data['command'] == DO:
             self.do_robot_stuff()
@@ -110,10 +110,11 @@ class Robot:
 
     # Connection status setting
     def set_connections_status(self, json):
-        if 'internet_conn' in json:
-            self.internet_connection = json['internet_conn']
-        elif 'operator_conn' in json:
-            self.operator_connection = json['operator_conn']
+        if not self.is_destroyed:
+            if 'internet_conn' in json:
+                self.internet_connection = json['internet_conn']
+            elif 'operator_conn' in json:
+                self.operator_connection = json['operator_conn']
 
     # Movement
     def move_robot(self, direction):
@@ -161,7 +162,7 @@ class Robot:
     # Doing other stuff
     def do_robot_stuff(self):
         self.activity = self.doing_stuff
-        self.log_report = DOING_STUFF
+        self.log_report = self.doing_stuff
 
     def start_robot(self):
         self.activity = STARTING_UP
@@ -174,8 +175,8 @@ class Robot:
     def shutdown_robot(self):
         self.activity = SHUTTING_DOWN
         self.log_report = SHUTDWN
-        self.has_started = False
         time.sleep(2)
+        self.has_started = False
         self.activity = POWERED_DOWN
 
     def download_map_data(self, map_id, map_data):
@@ -197,8 +198,8 @@ class Robot:
             self.activity = POWERED_DOWN
 
     def set_used_map(self, map_id):
-        self.used_map_id = self.maps[map_id]
-        self.log_report = MAP_USE
+        self.used_map_id = map_id
+        self.log_report = MAP_USE + f" [Map ID: {map_id}]"
 
     def destroy_robot(self):
         self.activity = POWERED_DOWN
@@ -227,7 +228,6 @@ class Terminator(Robot):
         self.operator_connection = False
         self.internet_connection = False
         time.sleep(5)
-        self.is_destroyed = False
         self.start_robot()
         self.do_robot_stuff()
 

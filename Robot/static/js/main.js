@@ -12,13 +12,24 @@ let opReconnectInterval
 async function updateRobot(){
     let response = await apiGet("/get_update");
     updateDisplay(response)
-    if (webWifi && connectedToWeb){
-        web_socket.emit('update_status', response)
+    if (connectedToWeb && (response['is_destroyed'] || !webWifi)){
+        connectedToWeb = false;
+        web_socket.disconnect();
+    } else if (webWifi && connectedToWeb) {
+        web_socket.emit('update_status', response);
+    } else if (webWifi && !connectedToWeb && !response['is_destroyed'] && !webReconnectInterval){
+        webReconnectInterval = setInterval(reconnectToWebSocket, 10000);
     } else {
-        apiPost("/connection", {'internet_conn': false})
+        apiPost("/connection", {'internet_conn': false});
     }
-    if (opWifi && connectedToOp){
-        operator_socket.emit('update_status', response)
+
+    if (connectedToOp && (response['is_destroyed'] || !opWifi)){
+        connectedToOp = false;
+        operator_socket.disconnect();
+    } else if (opWifi && connectedToOp){
+        operator_socket.emit('update_status', response);
+    } else if (opWifi && !connectedToOp && !response['is_destroyed'] && !opReconnectInterval){
+        opReconnectInterval = setInterval(reconnectToWebSocket, 10000);
     } else {
         apiPost("/connection", {'operator_conn': false})
     }
@@ -27,7 +38,8 @@ async function updateRobot(){
 web_socket.on('receive_conn', function (data){
     apiPost("/connection", data);
     connectedToWeb = true;
-    clearInterval(webReconnectInterval)
+    clearInterval(webReconnectInterval);
+    webReconnectInterval = undefined;
 })
 
 web_socket.on('connect_error', function (err){
@@ -42,6 +54,7 @@ operator_socket.on('receive_conn', function (data){
     apiPost("/connection", data);
     connectedToOp = true;
     clearInterval(opReconnectInterval)
+    opReconnectInterval = undefined;
 })
 
 operator_socket.on('connect_error', function (err){
@@ -135,10 +148,10 @@ function updateDisplay(data){
         mapListStatusElement.innerText = "NO MAP DATA!";
     }
 
-    if (data['used_map']){
+    if (data['used_map_id']){
         usedMapStatusElement.classList.remove('bad-status');
         usedMapStatusElement.classList.add('neutral-status');
-        usedMapStatusElement.innerText = data['used_map'];
+        usedMapStatusElement.innerText = data['used_map_id'];
     } else {
         usedMapStatusElement.classList.remove('neutral-status');
         usedMapStatusElement.classList.add('bad-status');
@@ -191,13 +204,12 @@ function webWifiToggleHandler(evt){
         targetBtn.classList.add('btn-danger')
         targetBtn.innerText = "Web WiFi OFF"
         webWifi = false
-        web_socket.disconnect()
     } else {
         targetBtn.classList.remove('btn-danger')
         targetBtn.classList.add('btn-success')
         targetBtn.innerText = "Web WiFi ON"
         webWifi = true
-        web_socket.connect()
+        // web_socket.connect()
     }
 }
 
@@ -208,12 +220,11 @@ function opWifiToggleHandler(evt){
         targetBtn.classList.add('btn-danger')
         targetBtn.innerText = "Op WiFi OFF"
         opWifi = false
-        operator_socket.disconnect()
     } else {
         targetBtn.classList.remove('btn-danger')
         targetBtn.classList.add('btn-success')
         targetBtn.innerText = "Op WiFi ON"
         opWifi = true
-        operator_socket.connect()
+        // operator_socket.connect()
     }
 }

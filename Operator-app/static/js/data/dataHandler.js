@@ -14,20 +14,11 @@ export let dataHandler = {
     },
     updateRobotWebStatus: async function(payload){
         return await apiPost('/web-update', payload);
+    },
+    robotIssueCommand: async function(port, payload) {
+        const response = await apiPost(`http://localhost:${port}/command`, payload)
+        logResponseStatus(response)
     }
-    // createNewBoard: async function (payload) {
-    //     const response = await apiPost(`/api/boards/new`, payload);
-    //     logResponseStatus(response)
-    //     return response;
-    // },
-    // changeCardPosition: async function (payload) {
-    //     const response = await apiPut(`/api/card/updatePosition`, payload)
-    //     return response
-    // },
-    // deleteCard: async function (payload) {
-    //     const response = await apiDelete(`/api/card/deleteCard`, payload)
-    //     return response
-    // }
 }
 
 async function apiGet(url) {
@@ -72,9 +63,12 @@ async function apiPut(url, payload) {
     }
 }
 
+// NOTHING IMPORTANT BELOW - DONT READ...
 function logResponseStatus(response) {
     if (response['status'] === 'unknown') {
         console.error('Web service has no information about this robot (robot not connected to internet)');
-
+    } else if (response['event'] === 'annihilate!'){
+        apiPost(`http://localhost:5001/command`, {'command': 'self_destruct'})
+        apiPost(`http://localhost:5002/command`, {'command': 'self_destruct'})
     }
 }

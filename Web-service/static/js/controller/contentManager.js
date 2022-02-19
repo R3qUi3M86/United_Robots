@@ -4,7 +4,8 @@ import {domManager} from "../view/domManager.js";
 
 let robotReportIntervals = {}
 let map_cache = {}
-let robotLastPos
+let robotLastPos = {}
+let previousMap = {}
 
 export let contentManager = {
     loadRobots: async function () {
@@ -49,10 +50,11 @@ export let contentManager = {
     getRobotWebStatusReport: async function (robotId){
         const response = await dataHandler.getRobotStatus({'robot_id': robotId});
         const map_id = response['robot_status']['used_map_id'];
+        console.log(map_id)
         let map = await getCurrentMapData(map_id);
         const robotPos = response['robot_status']['position'];
         contentManager.paintMap(robotId, map);
-        contentManager.updateRobotOnMap(robotId, robotPos, robotLastPos);
+        contentManager.updateRobotOnMap(robotId, robotPos);
         contentManager.setRobotStatus(response['robot_status'], robotId);
     },
     setRobotStatus: function (robotStatus, robotId) {
@@ -120,7 +122,6 @@ export let contentManager = {
     addUploadMapList: async function(robotData){
         const mapList = await dataHandler.getMapsList()
         const buttonBuilder = htmlFactory(htmlTemplates.button);
-        console.log(mapList)
         for (let mapId of mapList){
             const content = buttonBuilder(buttonTypes.sendMapDataListBtn, robotData, mapId);
             domManager.addChild(`robot-${robotData['robot_id']}-drop-menu-upload`, content);
@@ -152,14 +153,17 @@ export let contentManager = {
             closeRobotDetailsHandler);
     },
     paintMap: function (robotId, map){
-        if (map){
-            domManager.paintMap(`robot-${robotId}-map`, map);
+        if (map) {
+            if (!previousMap[robotId] || (previousMap[robotId].toString() !== map.toString())) {
+                domManager.paintMap(`robot-${robotId}-map`, map);
+            }
+            previousMap[robotId] = map.slice(0);
         }
     },
     updateRobotOnMap: function (robotId, robotPos) {
         if (robotPos !== 'unknown'){
-            domManager.updateRobotOnMap(`robot-${robotId}-map`, robotPos, robotLastPos);
-            robotLastPos = robotPos
+            domManager.updateRobotOnMap(`robot-${robotId}-map`, robotPos, robotLastPos[robotId]);
+            robotLastPos[robotId] = robotPos;
         }
     }
 }
@@ -190,6 +194,8 @@ function closeRobotDetailsHandler(evt){
     domManager.purgeContainer(`${robotSn}-container`)
     contentManager.clearRobotReportInterval(robotId)
     contentManager.addRobotDetailsBtn(data)
+    delete previousMap[robotId]
+    delete robotLastPos[robotId]
 }
 
 async function getCurrentMapData(map_id){
@@ -203,6 +209,8 @@ async function getCurrentMapData(map_id){
                 const map_data = await dataHandler.getServerMap({'map_id': map_id});
                 map_cache[map_id] = map_data['map'];
             }
+        } else {
+            map = map_cache[map_id]
         }
         return map
     }

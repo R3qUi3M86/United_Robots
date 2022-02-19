@@ -39,7 +39,7 @@ def get_robot_status():
 def get_map():
     map_id = request.json['map_id']
     requested_map = maps_data.maps_data[map_id]
-    print(requested_map)
+    print(f'requested map: {requested_map}')
     return jsonify({'response_status': 'ok', 'map': requested_map})
 
 
@@ -50,7 +50,7 @@ def connect_robot():
 
 @socket.on("disconnect", namespace='/robot-update')
 def disconnect_robot():
-    print(data_manager.robotsDirectStatus)
+    print(f'disconnected {data_manager.robotsDirectStatus}')
     robot_id = None
     for key in data_manager.robotsDirectStatus:
         if request.sid == data_manager.robotsDirectStatus[key]['conn_sid']:
@@ -70,6 +70,8 @@ def receive_robot_status_update_from_robot(data):
                                                          'activity': data['activity'],
                                                          'position': data['position'],
                                                          'used_map_id': data['used_map_id'],
+                                                         'loaded_maps': data['loaded_maps'],
+                                                         'has_started': data['has_started'],
                                                          'conn_sid': request.sid,
                                                          'timestamp': time()}
     data['timestamp'] = time()
@@ -89,6 +91,7 @@ def connect_operator():
 def receive_robot_status_update_from_web():
     data = request.json
     if 'status' in data:
+        print(f'web status: {data}')
         if data['status'] == 'web_lost_connection':
             if data['robot_id'] in data_manager.robotsWebStatus:
                 del data_manager.robotsWebStatus[data['robot_id']]

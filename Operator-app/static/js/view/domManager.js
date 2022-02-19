@@ -7,6 +7,18 @@ export let domManager = {
             console.error("could not find such html element: " + parentIdentifier);
         }
     },
+    insertFirstChild(parentIdentifier, childContent) {
+        const parent = document.getElementById(parentIdentifier);
+        if (parent) {
+            if (parent.children.length > 0){
+                parent.insertBefore(childContent, parent.children[0]);
+            } else {
+                parent.appendChild(childContent);
+            }
+        } else {
+            console.error("could not find such html element: " + parentIdentifier);
+        }
+    },
     addEventListener(elementIdentifier, eventType, eventHandler) {
         const element = document.getElementById(elementIdentifier);
         if (element) {

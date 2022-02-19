@@ -32,8 +32,4 @@ def get_robot_status(robot_id):
     elif robot_id in robotsWebStatus:
         robot_status = robotsWebStatus[robot_id]
 
-    if 'used_map_id' in robot_status and robot_status['used_map_id']:
-        maps_id_in_use_by_robots[robot_status['robot_id']] = robot_status['used_map_id']
-        robot_status['used_map'] = maps_data.maps_data[robot_status['used_map_id']]
-
     return robot_status
