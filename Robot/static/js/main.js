@@ -29,7 +29,7 @@ async function updateRobot(){
     } else if (opWifi && connectedToOp){
         operator_socket.emit('update_status', response);
     } else if (opWifi && !connectedToOp && !response['is_destroyed'] && !opReconnectInterval){
-        opReconnectInterval = setInterval(reconnectToWebSocket, 10000);
+        opReconnectInterval = setInterval(reconnectToOpSocket, 10000);
     } else {
         apiPost("/connection", {'operator_conn': false})
     }

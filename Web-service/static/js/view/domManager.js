@@ -54,9 +54,9 @@ export let domManager = {
         if (element) {
             if (robotPos !== robotLastPos){
                 if (robotLastPos){
-                    element.children[robotLastPos[0]].children[robotLastPos[1]].innerText = ''
+                    element.children[robotLastPos[0]].children[robotLastPos[1]].innerHTML = ''
                 }
-                element.children[robotPos[0]].children[robotPos[1]].innerText = 'R'
+                element.children[robotPos[0]].children[robotPos[1]].innerHTML = '<i class="bi bi-robot"></i>'
             }
         } else {
             console.error("could not find such html element: " + elementIdentifier);

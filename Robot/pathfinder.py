@@ -1,42 +1,40 @@
-import random
+from pathfinding.core.diagonal_movement import DiagonalMovement
 from pathfinding.core.grid import Grid
 from pathfinding.finder.a_star import AStarFinder
 
+
+def generate_matrix(used_map):
+    matrix = []
+    for row in used_map:
+        matrix_row = []
+        for cell in row:
+            if cell == " ":
+                matrix_row.append(1)
+            else:
+                matrix_row.append(0)
+        matrix.append(matrix_row)
+
+    return matrix
+
+
 class Pathfinder:
-    def __init__(self, matrix, monster_tile_index):
-        
-        self.position = 0,0
-        self.monster_tile_index = monster_tile_index
-        self.matrix = matrix
-        self.grid = Grid(matrix = self.matrix)
-        self.finder = AStarFinder()
+    def __init__(self):
+        self.robot_index = None
+        self.destination = None
+        self.matrix = None
+        self.finder = AStarFinder(diagonal_movement=DiagonalMovement.always)
         self.path = []
-        self.points = []
     
     def create_path(self):
-        start_grid = self.grid.node(self.monster_tile_index[1], self.monster_tile_index[0])
-        end_grid = None
-        
-        if self.matrix[entity_manager.hero.tile_index[0]][entity_manager.hero.tile_index[1]] == 0:
-            new_end_tile_index = self.get_alternative_tile()
-            end_grid = self.grid.node(new_end_tile_index[1], new_end_tile_index[0])
-        else:
-            end_grid = self.grid.node(entity_manager.hero.tile_index[1], entity_manager.hero.tile_index[0])
-        
-        self.path, _ = self.finder.find_path(start_grid, end_grid, self.grid)
-        #print(self.grid.grid_str(self.path, start_grid, end_grid))
-        self.grid.cleanup()
+        grid = Grid(matrix=self.matrix)
+        start_grid = grid.node(self.robot_index[1], self.robot_index[0])
+        end_grid = grid.node(self.destination[1], self.destination[0])
 
-    def get_alternative_tile(self):
-        potential_tile_indices = [(entity_manager.hero.tile_index[0],entity_manager.hero.tile_index[1]-1),
-                                  (entity_manager.hero.tile_index[0],entity_manager.hero.tile_index[1]+1),
-                                  (entity_manager.hero.tile_index[0]-1,entity_manager.hero.tile_index[1]),
-                                  (entity_manager.hero.tile_index[0]+1,entity_manager.hero.tile_index[1])]
-        
-        fitered_tile_indices = []
+        self.path, _ = self.finder.find_path(start_grid, end_grid, grid)
+        print(grid.grid_str(self.path, start_grid, end_grid))
 
-        for tile_index in potential_tile_indices:
-            if self.matrix[tile_index[0]][tile_index[1]] == 1:
-                fitered_tile_indices.append(tile_index)
+    def update(self, used_map, robot_index, destination):
+        self.matrix = generate_matrix(used_map)
+        self.robot_index = robot_index
+        self.destination = destination
 
-        return random.choice(fitered_tile_indices)

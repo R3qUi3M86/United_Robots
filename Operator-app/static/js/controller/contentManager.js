@@ -308,9 +308,12 @@ function robotShutdownCommandHandler(evt){
     dataHandler.robotIssueCommand(5000+parseInt(robotId), {'command': 'power_off'});
 }
 
-function robotMoveCommandHandler(evt){
+export function robotMoveCommandHandler(evt){
+    console.log('moving')
     const target = evt.currentTarget;
     const robotId = target.dataset.robotId;
+    const moveRow = target.dataset.row
+    const moveCol = target.dataset.col
     const moveDir = moveCommands[target.dataset.moveDir];
-    dataHandler.robotIssueCommand(5000+parseInt(robotId), {'command': 'move', 'move_dir': moveDir});
+    dataHandler.robotIssueCommand(5000 + parseInt(robotId), {'command': 'move', 'move_dir': moveDir, 'grid': [moveRow, moveCol]});
 }

@@ -114,7 +114,6 @@ def disconnect_operator():
         if request.sid == database_manager.robotsRoutedStatus[key]['conn_sid']:
             del database_manager.robotsRoutedStatus[key]
     print('disconnecting operator')
-    operator_socket = None
 
 
 @socket.on("update_status", namespace='/operator-update')

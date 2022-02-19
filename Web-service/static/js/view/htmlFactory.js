@@ -190,7 +190,7 @@ function robotStatusBuilder(type, statusText,robotId, robotSn, robotName){
                     const grid_cell = document.createElement('div');
                     grid_row.appendChild(grid_cell);
                     grid_cell.id = `robot-${robotId}-map-grid-${i}-${j}`;
-                    grid_cell.classList.add('col-1', 'map-cell', 'obstacle');
+                    grid_cell.classList.add('col-1', 'map-cell', 'obstacle', 'px-1');
                 }
             }
 

@@ -1,5 +1,6 @@
 import time
 import threading
+from pathfinder import Pathfinder
 
 robot_sn = {1: "SN-001", 2: "SN-002", 3: "SN-003"}
 robot_name = {1: "Mr-Handy-MK1", 2: "Terminator-T800", 3: "Annihilator-3000"}
@@ -81,6 +82,9 @@ class Robot:
         self.internet_connection = False
         self.has_started = False
         self.is_destroyed = False
+        self.pathfinder = Pathfinder()
+        self.abort_movement = False
+        self.is_moving = False
 
         self.pwr_up_seq = PWR_SEQUENCE_1
 
@@ -99,12 +103,17 @@ class Robot:
         elif command_data['command'] == USE_MAP:
             self.set_used_map(command_data['map_id'])
         elif command_data['command'] == DO:
-            self.do_robot_stuff()
+            if self.has_started:
+                self.do_robot_stuff()
         elif command_data['command'] == MOVE:
-            if command_data['move_dir'] == MOVE_GRID:
-                self.travel_to_grid_loc(command_data['grid'])
-            else:
-                self.move_robot(command_data['move_dir'])
+            if self.has_started:
+                if self.is_moving:
+                    self.abort_movement = True
+                self.is_moving = True
+                if command_data['move_dir'] == MOVE_GRID:
+                    self.travel_to_grid_loc(command_data['grid'])
+                elif not self.abort_movement:
+                    self.move_robot(command_data['move_dir'])
         elif command_data['command'] == SELF_DESTRUCT:
             self.destroy_robot()
 
@@ -119,45 +128,64 @@ class Robot:
     # Movement
     def move_robot(self, direction):
         self.activity = MOVING
+        time.sleep(1)
         if direction == MOVE_UP:
             self.log_report = LOG_MOVE_U
-            time.sleep(1)
             self.move_up()
         elif direction == MOVE_DOWN:
             self.log_report = LOG_MOVE_D
-            time.sleep(1)
             self.move_down()
         elif direction == MOVE_LEFT:
             self.log_report = LOG_MOVE_L
-            time.sleep(1)
             self.move_left()
         elif direction == MOVE_RIGHT:
             self.log_report = LOG_MOVE_R
-            time.sleep(1)
             self.move_right()
         time.sleep(1)
         self.activity = IDLE
-        self.log_report = None
+        self.is_moving = False
+        self.abort_movement = False
 
     def move_up(self):
-        self.position[0] = self.position[0] - 1
+        if self.maps[self.used_map_id][self.position[0] - 1][self.position[1]] != "X":
+            self.position[0] = self.position[0] - 1
 
     def move_down(self):
-        self.position[0] = self.position[0] + 1
+        if self.maps[self.used_map_id][self.position[0] + 1][self.position[1]] != "X":
+            self.position[0] = self.position[0] + 1
 
     def move_left(self):
-        self.position[1] = self.position[1] - 1
+        if self.maps[self.used_map_id][self.position[0]][self.position[1] - 1] != "X":
+            self.position[1] = self.position[1] - 1
 
     def move_right(self):
-        self.position[1] = self.position[1] + 1
+        if self.maps[self.used_map_id][self.position[0]][self.position[1] + 1] != "X":
+            self.position[1] = self.position[1] + 1
 
     def travel_to_grid_loc(self, grid_row_col):
-        self.activity = MOVING
+        self.pathfinder.update(self.maps[self.used_map_id], self.position, [int(grid_row_col[0]), int(grid_row_col[1])])
+        self.pathfinder.create_path()
+        self.follow_path(self.pathfinder.path)
+
+    def follow_path(self, path):
+        path.pop(0)
         self.log_report = TRAVELING
-        time.sleep(1)
-        pass
+        for i in range(len(path)):
+            self.activity = MOVING
+            self.is_moving = True
+            time.sleep(1)
+            self.activity = MOVING
+            self.is_moving = True
+            self.position = [path[i][1], path[i][0]]
+            time.sleep(1)
+            if self.abort_movement:
+                self.abort_movement = False
+                self.activity = IDLE
+                self.is_moving = False
+                return
         self.activity = IDLE
         self.log_report = ARRIVED
+        self.is_moving = False
 
     # Doing other stuff
     def do_robot_stuff(self):

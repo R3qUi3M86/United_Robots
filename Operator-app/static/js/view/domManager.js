@@ -1,3 +1,5 @@
+import {robotMoveCommandHandler} from "../controller/contentManager.js";
+
 export let domManager = {
     addChild(parentIdentifier, childContent) {
         const parent = document.getElementById(parentIdentifier);
@@ -52,8 +54,10 @@ export let domManager = {
                 for (let j = 0; j < rows[i].children.length; j++){
                     if (map_row_arr[j] === 'X'){
                         element.children[i].children[j].classList.add('obstacle')
+                        element.children[i].children[j].removeEventListener('click', robotMoveCommandHandler)
                     } else {
                         element.children[i].children[j].classList.remove('obstacle')
+                        element.children[i].children[j].addEventListener('click', robotMoveCommandHandler)
                     }
                 }
             }
@@ -66,9 +70,9 @@ export let domManager = {
         if (element) {
             if (robotPos !== robotLastPos){
                 if (robotLastPos){
-                    element.children[robotLastPos[0]].children[robotLastPos[1]].innerText = ''
+                    element.children[robotLastPos[0]].children[robotLastPos[1]].innerHTML = ''
                 }
-                element.children[robotPos[0]].children[robotPos[1]].innerText = 'R'
+                element.children[robotPos[0]].children[robotPos[1]].innerHTML = '<i class="bi bi-robot"></i>'
             }
         } else {
             console.error("could not find such html element: " + elementIdentifier);
