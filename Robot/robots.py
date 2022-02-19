@@ -178,7 +178,7 @@ class Robot:
             self.is_moving = True
             self.position = [path[i][1], path[i][0]]
             time.sleep(1)
-            if self.abort_movement:
+            if self.abort_movement or (not self.internet_connection and not self.operator_connection):
                 self.abort_movement = False
                 self.activity = IDLE
                 self.is_moving = False
@@ -255,7 +255,7 @@ class Terminator(Robot):
         self.pwr_up_seq = PWR_SEQUENCE_2
         self.operator_connection = False
         self.internet_connection = False
-        time.sleep(5)
+        time.sleep(60)
         self.start_robot()
         self.do_robot_stuff()
 

@@ -110,9 +110,12 @@ def connect_operator():
 def disconnect_operator():
     global operator_socket
     print('operator disconnected, clearing cashed robot data')
+    keys = []
     for key in database_manager.robotsRoutedStatus:
         if request.sid == database_manager.robotsRoutedStatus[key]['conn_sid']:
-            del database_manager.robotsRoutedStatus[key]
+            keys.append(key)
+    for key in keys:
+        del database_manager.robotsRoutedStatus[key]
     print('disconnecting operator')
 
 
